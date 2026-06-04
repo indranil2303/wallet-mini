@@ -1,0 +1,323 @@
+/* ----------------------------------
+   Shell Frame & Card Setup
+------------------------------------- */
+.send-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1.5rem;
+  min-height: 100vh;
+  background-color: #f6f8fb;
+  box-sizing: border-box;
+}
+
+.send-card {
+  background: #ffffff !important;
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 2rem;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03) !important;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
+  border: none !important;
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+
+    .header-icon-wrapper {
+      width: 44px;
+      height: 44px;
+      background: #eef2ff;
+      color: #6366f1;
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    .header-text {
+      h2 {
+        margin: 0 0 0.15rem 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+/* ----------------------------------
+   Input Containers & Spacing Layout
+------------------------------------- */
+.exchange-inputs-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stable Block Row for the Exchange Icon (Replaces Fragile Absolute Contexts) */
+.exchange-bridge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 36px; /* Set explicit height to match circle dimensions */
+  margin-top: -8px; /* Gracefully bridges the top row spacing */
+  margin-bottom: 8px; /* Generates a clean, open gap to the bottom inputs */
+  position: relative;
+  z-index: 5;
+
+  .exchange-icon-circle {
+    width: 36px;
+    height: 36px;
+    background: #ffffff;
+    color: #6366f1;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+/* Split Row Container (Currency Left, Amount Right) */
+.receiver-split-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* ----------------------------------
+   Safe Material Form Field Overrides
+------------------------------------- */
+::ng-deep .clean-field {
+  width: 100%;
+
+  /* Strips out the blocky background shapes without changing element structure */
+  .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+    background-color: transparent !important;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    background-color: transparent !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Removes the focus background mask overlay entirely */
+  .mat-mdc-form-field-focus-overlay {
+    opacity: 0 !important;
+  }
+
+  /* Structural font styling safely matched across inputs and selects */
+  input.mat-mdc-input-element,
+  .mat-mdc-select-value,
+  .currency-prefix {
+    font-size: 1.15rem !important;
+    font-weight: 500 !important;
+    color: #0f172a !important;
+  }
+
+  /* Clean Bottom Border Custom Styling */
+  .mdc-line-ripple {
+    border-bottom: 1px solid #cbd5e1 !important;
+    background-color: transparent !important;
+  }
+
+  /* Smooth color shift when field gets focused */
+  &.mat-form-field-focused .mdc-line-ripple::after {
+    border-bottom-color: #6366f1 !important;
+  }
+}
+
+/* Fixes Dropdown Options Panel Transparency */
+::ng-deep .mat-mdc-select-panel {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  padding: 4px 0 !important;
+}
+
+::ng-deep .mat-mdc-option {
+  background-color: #ffffff !important;
+
+  &:hover:not(.mdc-list-item--disabled) {
+    background-color: #f8fafc !important;
+  }
+
+  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+    background-color: #eef2ff !important;
+    .mdc-list-item__primary-text {
+      color: #6366f1 !important;
+      font-weight: 600;
+    }
+  }
+}
+
+/* ----------------------------------
+   Fees Detail Block
+------------------------------------- */
+.fees-detail-area {
+  background-color: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+
+  .fee-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    min-height: 24px; /* Prevents layout jump when swapping between text and spinner */
+  }
+
+  .fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+
+    .fee-label {
+      color: #64748b;
+    }
+    .fee-value {
+      font-weight: 600;
+      color: #1e293b;
+    }
+  }
+
+  .fee-divider {
+    border-bottom: 1.5px dashed #cbd5e1;
+    margin: 0.25rem 0;
+  }
+}
+
+/* ----------------------------------
+   Externalized Action Button
+------------------------------------- */
+.action-container-outside {
+  width: 100%;
+  max-width: 420px;
+
+  .custom-send-button {
+    width: 100%;
+    padding: 16px 0;
+    border-radius: 16px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    background-color: #6366f1;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &:hover:not(:disabled) {
+      background-color: #4f46e5;
+    }
+
+    &:disabled {
+      background-color: #e2e8f0;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .send-shell {
+    padding: 1.5rem 1rem;
+  }
+  .send-card {
+    padding: 2rem 1.25rem;
+  }
+  .receiver-split-group {
+    gap: 1rem;
+  }
+}
+
+/* Ensures the flex layout takes up the full width of the material option */
+::ng-deep .mat-mdc-option .mdc-list-item__primary-text {
+  width: 100%;
+}
+
+/* Custom dual-text display for both the dropdown options AND the selected trigger */
+::ng-deep .currency-display-content {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  overflow: hidden;
+
+  .currency-code {
+    font-weight: 600;
+    color: #0f172a;
+    /* In the trigger view, it inherits 1.15rem from .mat-mdc-select-value */
+  }
+
+  .currency-name {
+    font-size: 0.8rem !important; /* Forces smaller text even in trigger view */
+    color: #64748b !important;
+    font-weight: 400 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Adjust hover/selected state color for the subtext inside dropdowns */
+::ng-deep .mat-mdc-option {
+  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+    .currency-display-content .currency-code {
+      color: #6366f1 !important;
+    }
+    .currency-display-content .currency-name {
+      color: #818cf8 !important; /* Slightly tinted blue for selected name */
+    }
+  }
+}

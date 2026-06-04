@@ -1,0 +1,298 @@
+/* 1. Shell & Container */
+.dashboard-shell {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-container {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 2. Hero Card & Balance Spinner */
+.hero-card {
+  border-radius: 24px;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #7c6cff, #5b4df7);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 16px 32px rgba(91, 77, 247, 0.25);
+  min-height: 220px;
+  box-sizing: border-box;
+
+  .label {
+    opacity: 0.85;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 8vw, 3.5rem);
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .hero-actions {
+    margin-top: 1.5rem;
+  }
+
+  .add-money-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 12px 28px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition:
+      background-color 0.2s ease,
+      transform 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+.balance-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.sync-icon {
+  width: 28px;
+  height: 28px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 3. Quick Actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+
+  .action-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+  }
+
+  .action-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    transition:
+      background-color 0.2s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+    height: 100%;
+    box-sizing: border-box;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+      border-color: #cbd5e1;
+    }
+
+    h3 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.1rem;
+      color: #1e293b;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+  }
+}
+
+/* 4. Activity / Bill Payments */
+.activity {
+  .section-header {
+    margin-bottom: 1rem;
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: #1e293b;
+    }
+  }
+}
+
+.bill-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns */
+  gap: 1rem;
+}
+
+.bill-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: white;
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &:hover:not(.disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e1;
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f8fafc;
+  }
+
+  .icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem; /* Stacked layout spacing */
+
+    &.electricity { background: #fef3c7; color: #d97706; }
+    &.credit { background: #e0e7ff; color: #4338ca; }
+  }
+
+  .bill-details {
+    h3 { margin: 0 0 4px 0; font-size: 0.95rem; color: #1e293b; font-weight: 600; }
+    p { margin: 0; font-size: 0.8rem; color: #64748b; }
+  }
+}
+
+/* 5. Dynamic Status Banner & Animations */
+.status-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+
+  svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  &.inactive {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+  &.frozen {
+    background: #eff6ff;
+    color: #1e3a8a;
+    border: 1px solid #bfdbfe;
+  }
+  &.closed {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+}
+
+.fade-in {
+  animation: fadeSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 6. Disabled States */
+.disabled-link {
+  pointer-events: none;
+  opacity: 0.55;
+  filter: grayscale(100%);
+
+  .action-card {
+    background: #f8fafc;
+    box-shadow: none;
+    border-color: #e2e8f0;
+  }
+}
+
+/* 7. Mobile Adjustments */
+@media (max-width: 768px) {
+  .dashboard-shell {
+    padding: 1.5rem 1rem;
+  }
+  .hero-card {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-shell {
+    padding: 1rem;
+  }
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+}

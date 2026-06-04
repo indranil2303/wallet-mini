@@ -1,0 +1,60 @@
+<div class="shell">
+  <div class="global-toast-container">
+    @for (note of recentToasts(); track note.requestId) {
+      <div class="toast-card drop-in" [ngClass]="note.type">
+        <div class="toast-content">
+          <strong>{{ note.type === 'money_received' ? 'Money Received' : 'Money Sent' }}</strong>
+          <span class="amount-glow">
+            {{ note.type === 'money_received' ? '+' : '-' }}
+            {{ note.receiverCurrency | currencySymbol }} {{ note.amount | number: '1.2-2' }}
+          </span>
+        </div>
+        <div class="toast-footer">{{ note.message }}</div>
+      </div>
+    }
+  </div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">W</div>
+      <div class="brand-text">
+        <span>Wallet</span>
+        <div
+          class="connection-dot"
+          [class.connected]="isConnected()"
+          title="Connection Status"
+        ></div>
+      </div>
+    </div>
+
+    <div class="tagline">Secure. Fast. Reliable.</div>
+    <div class="actions">
+      @if (isAuthenticated()) {
+        <button class="reward-btn">
+          <span class="sparkle">✨</span>
+          <span class="reward-text">Rewards</span>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          aria-label="Logout"
+          class="logout-btn"
+          (click)="logout()"
+        >
+          <mat-icon>logout</mat-icon>
+        </button>
+      }
+    </div>
+  </header>
+
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <nav class="bottom-nav">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      Home
+    </a>
+    <a routerLink="/send" routerLinkActive="active"> Send </a>
+    <a routerLink="/transactions" routerLinkActive="active"> Activity </a>
+  </nav>
+</div>

@@ -1,0 +1,107 @@
+<section class="dashboard-shell">
+  <div class="dashboard-container">
+    @if (wallet$ | async; as wallet) {
+      @if (getStatusMessage(wallet.status)) {
+        <div class="status-banner fade-in" [ngClass]="wallet.status.toLowerCase()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span><strong>Note:</strong> {{ getStatusMessage(wallet.status) }}</span>
+        </div>
+      }
+
+      <section class="hero-card">
+        <span class="label">Current Balance</span>
+
+        <h1 class="balance-display">
+          {{ wallet.currencyCode | currencySymbol }}
+          {{ (wallet.balance | number: '1.2-2') || '0.00' }}
+
+          @if (isSyncing()) {
+            <svg
+              class="sync-icon spin"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+          }
+        </h1>
+
+        <div class="hero-actions">
+          <button
+            class="add-money-btn"
+            (click)="addMoney()"
+            [disabled]="isActionDisabled(wallet.status)"
+          >
+            Add Money
+          </button>
+        </div>
+      </section>
+
+      <section class="quick-actions">
+        <a
+          [routerLink]="isActionDisabled(wallet.status) ? null : '/send'"
+          class="action-card-link"
+          [class.disabled-link]="isActionDisabled(wallet.status)"
+        >
+          <div class="action-card">
+            <h3>Send Money</h3>
+            <p>Instant wallet transfer</p>
+          </div>
+        </a>
+
+        <a
+          [routerLink]="isActionDisabled(wallet.status) ? null : '/transactions'"
+          class="action-card-link"
+          [class.disabled-link]="isActionDisabled(wallet.status)"
+        >
+          <div class="action-card">
+            <h3>Transactions</h3>
+            <p>Track wallet activity</p>
+          </div>
+        </a>
+      </section>
+
+      <section class="activity">
+        <div class="section-header">
+          <h2>Bill Payments</h2>
+        </div>
+
+        @defer (on viewport) {
+          <div class="bill-grid">
+            <button class="bill-card clickable">
+              <div class="icon-box electricity">⚡</div>
+              <div class="bill-details">
+                <h3>Electricity</h3>
+                <p>Due in 3 days</p>
+              </div>
+            </button>
+
+            <button class="bill-card clickable disabled">
+              <div class="icon-box credit">💳</div>
+              <div class="bill-details">
+                <h3>Credit Card</h3>
+                <p>No dues</p>
+              </div>
+            </button>
+          </div>
+        } @placeholder {
+          <div class="loading-skeleton-grid"></div>
+        }
+      </section>
+    }
+  </div>
+</section>

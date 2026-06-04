@@ -1,0 +1,47 @@
+<div class="setup-overlay">
+  <div class="setup-card fade-in-up">
+    <div class="icon-header">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 8v8"></path>
+        <path d="M8 12h8"></path>
+      </svg>
+    </div>
+
+    <h2>Choose Base Currency</h2>
+    <p>We noticed you haven't set a default currency. Select one below to configure your wallet.</p>
+
+    <div class="currency-grid">
+      @for (curr of supportedCurrencies(); track curr.code) {
+        <div
+          class="currency-option"
+          [class.selected]="selectedCurrency() === curr.code"
+          (click)="selectedCurrency.set(curr.code)"
+        >
+          <span class="curr-symbol">{{ curr.code | currencySymbol }}</span>
+          <span class="curr-code">{{ curr.code }}</span>
+          <span class="curr-name">{{ curr.name }}</span>
+        </div>
+      }
+    </div>
+
+    <button
+      class="continue-btn"
+      [disabled]="!selectedCurrency() || isSaving()"
+      (click)="saveAndContinue()"
+    >
+      @if (isSaving()) {
+        <span>Configuring Wallet...</span>
+      } @else {
+        <span>Continue to Dashboard</span>
+      }
+    </button>
+  </div>
+</div>

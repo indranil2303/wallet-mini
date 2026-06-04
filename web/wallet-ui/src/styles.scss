@@ -1,0 +1,27 @@
+@use '@angular/material' as mat;
+@include mat.core();
+
+html {
+  color-scheme: light;
+
+  font-family: Inter, system-ui, sans-serif;
+
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+:root {
+  --primary: #6d5efc;
+  --surface: rgba(255, 255, 255, 0.75);
+  --text-muted: #64748b;
+}

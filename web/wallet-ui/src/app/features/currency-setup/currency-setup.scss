@@ -1,0 +1,132 @@
+.setup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.setup-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2.5rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  text-align: center;
+
+  .icon-header {
+    width: 56px;
+    height: 56px;
+    background: #eef2ff;
+    color: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 1.5rem;
+    svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  h2 {
+    margin: 0 0 0.5rem 0;
+    color: #0f172a;
+    font-size: 1.5rem;
+  }
+  p {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    line-height: 1.5;
+  }
+}
+
+.currency-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.currency-option {
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+
+  .curr-symbol {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .curr-code {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+  }
+  .curr-name {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+
+  &.selected {
+    border-color: #6366f1;
+    background: #eef2ff;
+    .curr-symbol,
+    .curr-code {
+      color: #6366f1;
+    }
+  }
+}
+
+.continue-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background: #6366f1;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+  }
+  &:hover:not(:disabled) {
+    background: #4f46e5;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

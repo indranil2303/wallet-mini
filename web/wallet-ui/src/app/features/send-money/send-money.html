@@ -1,0 +1,189 @@
+<section class="send-shell">
+  <div class="send-card">
+    <div class="card-header">
+      <div class="header-icon-wrapper">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h2>Send Money</h2>
+        <p>Secure cross-border transfer</p>
+      </div>
+    </div>
+
+    <div class="recipient-search-area" style="margin-bottom: 24px">
+      <mat-form-field
+        class="full-width clean-field"
+        appearance="fill"
+        floatLabel="always"
+        subscriptSizing="dynamic"
+      >
+        <mat-label>Recipient Handle</mat-label>
+        <span matTextPrefix class="username-prefix">@</span>
+        <input matInput type="text" [formControl]="searchControl" placeholder="username" />
+        @if (isSearching()) {
+          <div matSuffix class="search-spinner">
+            <mat-spinner diameter="20"></mat-spinner>
+          </div>
+        }
+      </mat-form-field>
+
+      @if (recipient()) {
+        <div
+          class="recipient-found fade-in"
+          style="
+            margin-top: 8px;
+            padding: 12px;
+            background: rgba(0, 255, 0, 0.05);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <div>
+            <strong>{{ recipient()?.alias }}</strong>
+            <div style="font-size: 12px; opacity: 0.7">
+              Wallet: {{ recipient()?.walletId | shortenWalletId }}
+            </div>
+          </div>
+          <span style="color: green">✓ Verified</span>
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div class="error-message fade-in" style="margin-top: 8px; color: #ff4444; font-size: 14px">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      @if (successMessage()) {
+        <div
+          class="success-message fade-in"
+          style="margin-top: 8px; color: #00c851; font-size: 14px; font-weight: 500"
+        >
+          {{ successMessage() }}
+        </div>
+      }
+    </div>
+
+    <div class="exchange-inputs-container">
+      <div class="receiver-split-group">
+        <mat-form-field
+          class="currency-select clean-field"
+          appearance="fill"
+          floatLabel="always"
+          subscriptSizing="dynamic"
+        >
+          <mat-label>Currency</mat-label>
+          <mat-select [ngModel]="receiverCurrency()" (ngModelChange)="onCurrencyChange($event)">
+            <mat-select-trigger>
+              <div class="currency-display-content">
+                <span class="currency-code">{{ receiverCurrency() }}</span>
+                <span class="currency-name">{{ getSelectedCurrencyName() }}</span>
+              </div>
+            </mat-select-trigger>
+
+            @for (currency of supportedCurrencies(); track currency.code) {
+              <mat-option [value]="currency.code">
+                <div class="currency-display-content">
+                  <span class="currency-code">{{ currency.code }}</span>
+                  <span class="currency-name">{{ currency.name }}</span>
+                </div>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field
+          class="amount-field receiver-amount clean-field"
+          appearance="fill"
+          floatLabel="always"
+          subscriptSizing="dynamic"
+        >
+          <mat-label>Recipient Gets</mat-label>
+          <span matTextPrefix class="currency-prefix">{{
+            receiverCurrency() | currencySymbol
+          }}</span>
+          <input
+            matInput
+            type="number"
+            [ngModel]="receiverAmount()"
+            (ngModelChange)="onReceiverAmountChange($event)"
+            placeholder="0.00"
+          />
+        </mat-form-field>
+      </div>
+      <mat-form-field
+        class="full-width amount-field clean-field"
+        appearance="fill"
+        floatLabel="always"
+        subscriptSizing="dynamic"
+      >
+        <mat-label>You Send ({{ senderCurrency() }})</mat-label>
+        <span matTextPrefix class="currency-prefix">{{ senderCurrency() | currencySymbol }}</span>
+        <input matInput type="number" [ngModel]="senderAmount()" readonly placeholder="0.00" />
+      </mat-form-field>
+    </div>
+
+    <div class="fees-detail-area">
+      @if (isFetchingQuote()) {
+        <div class="fee-placeholder fade-in" style="gap: 12px; flex-direction: row">
+          <mat-spinner diameter="18"></mat-spinner>
+          <span>Fetching live rates...</span>
+        </div>
+      } @else if (fxRate() !== null && transactionFee() !== null) {
+        <div class="fee-row fade-in">
+          <span class="fee-label">Exchange Rate</span>
+          <span class="fee-value">
+            1 {{ senderCurrency() }} = {{ fxRate() }} {{ receiverCurrency() }}
+          </span>
+        </div>
+
+        <div class="fee-row fade-in">
+          <span class="fee-label">Transaction Fee</span>
+          <span class="fee-value"
+            >{{ senderCurrency() | currencySymbol }}{{ transactionFee() | number: '1.2-2' }}</span
+          >
+        </div>
+
+        <div class="fee-row fade-in">
+          <span class="fee-label">Total Amount</span>
+          <span class="fee-value">
+            {{ senderCurrency() | currencySymbol
+            }}{{ (senderAmount() ?? 0) + (transactionFee() ?? 0) | number: '1.2-2' }}
+          </span>
+        </div>
+      } @else {
+        <div class="fee-placeholder fade-in">
+          <span>Enter an amount to view exchange rates</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="action-container-outside">
+    <button
+      class="custom-send-button"
+      (click)="sendMoney()"
+      [disabled]="loading() || isFetchingQuote() || !recipient() || !senderAmount()"
+    >
+      @if (!loading()) {
+        <span>Send Money</span>
+      } @else {
+        <div class="loading-state">
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Processing...</span>
+        </div>
+      }
+    </button>
+  </div>
+</section>

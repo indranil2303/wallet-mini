@@ -1,0 +1,390 @@
+/* 1. Structural Shell */
+.transactions-shell {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 2. Elevated Card Layout */
+.transactions-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 900px;
+  min-width: 0;
+  padding: 2rem;
+  border-radius: 16px;
+  box-sizing: border-box;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+
+  .card-header {
+    margin-bottom: 1.5rem;
+
+    h2 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+/* 3. Flexible Search Layout */
+.search-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+
+  .mat-mdc-form-field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-button {
+    height: 56px;
+    padding: 0 32px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-bottom: 22px; /* Offsets Material form field bottom padding */
+
+    .loading-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+  }
+}
+
+/* 4. Error Messages */
+.status-message {
+  margin-bottom: 1.5rem;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+
+  &.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+}
+
+/* 5. Responsive Table Styles */
+.table-container {
+  width: 100%;
+  overflow-x: auto; /* Keeps horizontal scroll for narrow screens */
+  overflow-y: hidden; /* Fix: Disables nested vertical scroll causing sticky header bugs */
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.tx-table {
+  width: 100%;
+  min-width: 800px; /* CRITICAL FIX: Forces table wide enough to expose 'Amount' & 'Status' columns */
+  background: transparent;
+  table-layout: auto;
+
+  th.mat-header-cell {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+    background: #f8fafc;
+  }
+
+  td.mat-cell {
+    color: #1e293b;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    white-space: nowrap;
+  }
+
+  .mono-text {
+    font-family: 'Courier New', Courier, monospace;
+    color: #475569;
+    font-size: 0.9rem;
+  }
+
+  .date-cell {
+    color: #64748b;
+    font-size: 0.85rem;
+  }
+
+  .amount-cell strong {
+    font-weight: 700;
+    color: #0f172a;
+  }
+}
+
+.party-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 180px;
+}
+
+.party-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-size: 0.92rem;
+    color: #0f172a;
+    font-weight: 600;
+  }
+
+  small {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-family: monospace;
+    letter-spacing: 0.3px;
+  }
+}
+
+.party-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.party-arrow {
+  color: #94a3b8;
+  font-size: 1rem;
+  margin-top: 8px;
+}
+
+/* 6. Status Pill Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px; /* Reduced from 4px 10px */
+  border-radius: 12px;
+  font-size: 0.65rem; /* Reduced from 0.75rem */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+
+  &.completed,
+  &.success {
+    background: #d1fae5;
+    color: #059669;
+  }
+
+  &.pending {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  &.failed {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+/* 7. Empty State */
+.no-activity {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  margin-top: 1rem;
+}
+
+/* 8. Mobile Responsiveness */
+@media (max-width: 768px) {
+  .transactions-shell {
+    padding: 1rem 0.5rem;
+  }
+
+  .transactions-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .search-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0; /* Reset gap, use margin for spacing */
+
+    .mat-mdc-form-field {
+      width: 100%;
+    }
+
+    .search-button {
+      width: 100%;
+      margin-bottom: 0; /* Remove desktop offset */
+      margin-top: 0.5rem; /* Add spacing below the input */
+    }
+  }
+}
+
+::ng-deep .cdk-overlay-pane .mat-mdc-datepicker-content,
+::ng-deep .cdk-overlay-pane .mat-datepicker-content {
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 12px;
+}
+
+::ng-deep .mat-calendar {
+  background-color: #ffffff !important;
+}
+
+/* ----------------------------------
+   Paginator Customization
+------------------------------------- */
+::ng-deep .mat-mdc-paginator {
+  background: transparent !important;
+  border-top: 1px solid #e2e8f0; /* Adds a clean separator from the table */
+
+  .mat-mdc-paginator-container {
+    min-height: 52px; /* Slimmer height */
+    padding: 0 8px;
+  }
+
+  /* 1. Make all text smaller, subtle, and uniform */
+  .mat-mdc-paginator-page-size-label,
+  .mat-mdc-paginator-range-label,
+  .mat-mdc-select-value-text {
+    font-size: 0.8rem !important;
+    color: #64748b !important;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+  }
+
+  /* 2. COMPLETELY remove the ugly black MDC outline */
+  .mdc-text-field--outlined .mdc-notched-outline {
+    display: none !important;
+  }
+
+  /* 3. Style the dropdown to look like a modern, soft pill/chip */
+  .mat-mdc-select {
+    background: #f1f5f9;
+    padding: 4px 12px 4px 16px;
+    border-radius: 20px; /* Pill shape */
+    margin: 0 4px;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      background: #e2e8f0;
+    }
+  }
+
+  /* Remove default MDC form-field padding that awkwardly stretches the select */
+  .mat-mdc-form-field-infix {
+    padding: 0 !important;
+    min-height: auto !important;
+    width: auto !important;
+  }
+
+  /* Soften and shrink the dropdown arrow */
+  .mat-mdc-select-arrow {
+    color: #94a3b8 !important;
+    transform: scale(0.85);
+  }
+
+  /* 4. Refine the Next/Previous navigation buttons */
+  .mat-mdc-icon-button {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 4px !important;
+
+    svg {
+      fill: #64748b;
+      transform: scale(0.9);
+    }
+
+    &[disabled] {
+      opacity: 0.3;
+    }
+
+    &:not([disabled]):hover {
+      background-color: #f1f5f9;
+    }
+  }
+}
+
+/* ----------------------------------
+   Dropdown Panel Fix (Paginator Overlay)
+------------------------------------- */
+::ng-deep .cdk-overlay-pane .mat-mdc-select-panel {
+  background-color: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 12px !important;
+  padding: 4px 0 !important;
+}
+
+/* Style the individual dropdown options to match your modern theme */
+::ng-deep .cdk-overlay-pane .mat-mdc-option {
+  min-height: 40px !important;
+
+  .mdc-list-item__primary-text {
+    color: #475569 !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+  }
+
+  /* Hover and Selected states */
+  &:hover,
+  &.mdc-list-item--selected {
+    background-color: #f8fafc !important;
+
+    .mdc-list-item__primary-text {
+      color: #0f172a !important;
+      font-weight: 600 !important;
+    }
+  }
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+
+  &.credit {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+
+  &.debit {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+  }
+}
