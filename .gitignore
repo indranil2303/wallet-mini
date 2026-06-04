@@ -1,0 +1,48 @@
+# ==================================
+# Visual Studio & .NET Backend
+# ==================================
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.dbmdl
+*.jfm
+*.pfx
+appsettings.Development.json
+
+# ==================================
+# Angular & Node.js Frontend
+# ==================================
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ==================================
+# OS Generated Files
+# ==================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==================================
+# Environments & Secrets
+# ==================================
+.env
+.env.local
+
+# ==================================
+# Explicit ALLOW Rules
+# ==================================
+# Ensure the assets directory for your README is always tracked
+!assets/
+!docs/assets/

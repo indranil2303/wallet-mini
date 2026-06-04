@@ -1,0 +1,2 @@
+namespace notification.consumer.contracts;
+public sealed record WalletTransactionNotification(string Type, Guid RequestId, string ReceiverCurrency, decimal Amount, string Message, DateTime CreatedAtUtc);
