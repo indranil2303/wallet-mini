@@ -24,14 +24,15 @@ export interface SendMoneyRequest {
 
 export interface Transaction {
   id: string;
-  type: 'CR' | 'DR'; // Credit or Debit
-  destinationCurrency: string;
-  destinationAmount: number;
-  exchangeRate: number;
+  type: 'CR' | 'DR';
+  sourceCurrency: string;
+  sourceAmount: number;
   senderAliasName: string;
   senderWalletId: string;
   receiverAliasName: string;
   receiverWalletId: string;
+  exchangeRate: number;
+  modifiedExchangeRate: number;
   status: string;
   createdAtUtc: string;
 }
@@ -68,6 +69,7 @@ export interface RecipientLookupResponse {
 @Injectable({
   providedIn: 'root',
 })
+
 export class WalletService {
   private walletSubject = new BehaviorSubject<WalletData | null>(null);
   public walletState$ = this.walletSubject.asObservable();
@@ -125,13 +127,16 @@ export class WalletService {
     // Strips the @ if the user types it to match backend sanitization
     const cleanAlias = alias.trim().replace(/^@/, '');
     return this.http.get<RecipientLookupResponse>(`${this.baseUrl}/wallet/lookup/${cleanAlias}`, {
-      withCredentials: true, // CRITICAL: Ensures session cookies pass through Nginx
+      withCredentials: true, // Ensures session cookies pass through Nginx
     });
   }
 
-  sendMoney(request: SendMoneyRequest): Observable<SendMoneyResponse> {
+  sendMoney(request: SendMoneyRequest, idempotencyKey: string): Observable<SendMoneyResponse> {
     return this.http.post<SendMoneyResponse>(`${this.baseUrl}/wallet/send`, request, {
-      withCredentials: true, // CRITICAL: Added missing credentials flag
+      headers: {
+        'Idempotency-Key': idempotencyKey
+      },
+      withCredentials: true, // Added missing credentials flag
     });
   }
 

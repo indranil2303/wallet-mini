@@ -25,6 +25,8 @@ public class Transaction
     public decimal DestinationAmount { get; set; }
     [Precision(18, 8)]
     public decimal FxRate { get; set; }
+    [Precision(18,8)]
+    public decimal? ModifiedFxRate {get; set;}
     [MaxLength(3)]
     public string FeeCurrency { get; set; } = default!;
     [Precision(18, 4)]
@@ -85,6 +87,10 @@ public sealed class TransactionConfiguration
 
         builder.Property(x => x.FxRate)
             .HasPrecision(18, 8);
+
+        builder.Property(x => x.ModifiedFxRate)
+            .HasPrecision(18, 8)
+                .IsRequired(false);
 
         builder.Property(x => x.xmin)
             .HasColumnName("xmin")

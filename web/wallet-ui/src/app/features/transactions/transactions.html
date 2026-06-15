@@ -91,16 +91,40 @@
           <th mat-header-cell *matHeaderCellDef>Amount</th>
           <td mat-cell *matCellDef="let element" class="amount-cell">
             <strong>
-              {{ element.destinationCurrency | currencySymbol }}
-              {{ element.destinationAmount | number: '1.2-2' }}
+              {{ element.sourceCurrency | currencySymbol }}
+              {{ element.sourceAmount | number: '1.2-2' }}
             </strong>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="fxrate">
           <th mat-header-cell *matHeaderCellDef>FX Rate</th>
-          <td mat-cell *matCellDef="let element" class="mono-text">
-            {{ element.exchangeRate | number: '1.2-4' }}
+          <td mat-cell *matCellDef="let element">
+            <div class="fx-rate-block">
+              @if (element.type === 'CR') {
+                @if (element.modifiedExchangeRate && element.modifiedExchangeRate !== 1) {
+                  <span class="currency-pair">
+                    {{ element.sourceCurrency }} → {{ defaultCurrency()! }}
+                  </span>
+                  <span class="rate-value mono-text">
+                    {{ element.modifiedExchangeRate | number: '1.2-4' }}
+                  </span>
+                } @else {
+                  <span class="rate-value mono-text text-muted"> No Conversion </span>
+                }
+              } @else {
+                @if (element.exchangeRate && element.exchangeRate !== 1) {
+                  <span class="currency-pair">
+                    {{ defaultCurrency()! }} → {{ element.sourceCurrency }}
+                  </span>
+                  <span class="rate-value mono-text">
+                    {{ element.exchangeRate | number: '1.2-4' }}
+                  </span>
+                } @else {
+                  <span class="rate-value mono-text text-muted"> No Conversion </span>
+                }
+              }
+            </div>
           </td>
         </ng-container>
 

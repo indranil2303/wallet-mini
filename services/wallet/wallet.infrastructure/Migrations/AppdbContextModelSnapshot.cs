@@ -177,7 +177,15 @@ namespace wallet.infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<Guid>("RequestId")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(200)
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000000"));
+
                     b.HasKey("Id");
+
+                    b.HasIndex("RequestId", "EventKey");
 
                     b.ToTable("outbox_messages", (string)null);
                 });
@@ -206,6 +214,10 @@ namespace wallet.infrastructure.Migrations
                         .HasColumnType("character varying(3)");
 
                     b.Property<decimal>("FxRate")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)");
+
+                    b.Property<decimal?>("ModifiedFxRate")
                         .HasPrecision(18, 8)
                         .HasColumnType("numeric(18,8)");
 

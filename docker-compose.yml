@@ -15,7 +15,7 @@ services:
     networks:
       - wallet-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,7 +33,7 @@ services:
       - --appendonly yes
       - --appendfilename "appendonly.aof"
       - --dir /data
-      - --maxmemory 512mb
+      - --maxmemory 256mb
       - --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
@@ -42,7 +42,7 @@ services:
     networks:
       - wallet-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,70 +53,98 @@ services:
     image: apache/kafka:latest
     container_name: wallet-kafka
     environment:
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:
       - wallet-network
-    # command: >
-    #   bash -c "
-    #   /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic wallet.transaction.completed --bootstrap-server kafka:9092 &&
-    #   /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic wallet.transaction.failed --bootstrap-server kafka:9092
-    #   "
     healthcheck:
-      test:
-        [
-          "CMD",
-          "/opt/kafka/bin/kafka-topics.sh",
-          "--bootstrap-server",
-          "127.0.0.1:9092",
-          "--list",
-        ]
+      test: [ "CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "127.0.0.1:9092", "--list" ]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 40s
+      start_period: 20s
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.154.0
+    container_name: wallet-otel-collector
+    command:
+      - --config=/etc/otel-collector-config.yml
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro
+    ports:
+      - "4317:4317"
+      - "13133:13133"
+    networks:
+      - wallet-network
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: wallet-tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"
+    networks:
+      - wallet-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: wallet-grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer # Changed from Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=false # Re-enabled so admins can actually log in
+    volumes:
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - tempo
+    networks:
+      - wallet-network
     restart: unless-stopped
 
   # ====== Individual Services (Gateway + Wallet API + Notification API) ======
 
   wallet-api:
     build:
-      context: ./services/wallet
-      dockerfile: wallet.api/Dockerfile
+      context: .
+      dockerfile: services/wallet/wallet.api/Dockerfile
     image: wallet-api:latest
     container_name: wallet-api
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     environment:
       ASPNETCORE_HTTP_PORT: 8080
       ASPNETCORE_URLS: "http://+:8080"
       ASPNETCORE_ENVIRONMENT: ${ENVIRONMENT}
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
-
-      # Key matches Program.cs expectations
-      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=300;"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=512;"
       Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},ssl=false,abortConnect=false"
-
-      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
-      Kafka__GroupId: ${KAFKA__GROUP_ID}
-      Kafka__Topic: ${KAFKA__TOPIC}
-      Kafka__FailureTopic: ${KAFKA__FAILURE_TOPIC}
-
-      # Object nesting hierarchy notation
       Jwt_Issuer: ${JWT_ISSUER}
       Jwt_Audience: ${JWT_AUDIENCE}
       Jwt_Secret: ${JWT_SECRET}
-
+      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
+      OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
       Logging__LogLevel__Default: ${LOG_LEVEL:-Error}
       Logging__LogLevel__Microsoft.AspNetCore: Warning
       Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
@@ -130,10 +158,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - wallet-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -142,31 +172,34 @@ services:
 
   wallet-notification:
     build:
-      context: ./services/notification
-      dockerfile: notification.api/Dockerfile
+      context: .
+      dockerfile: services/notification/notification.api/Dockerfile
     image: wallet-notification:latest
     container_name: wallet-notification
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     environment:
       ASPNETCORE_HTTP_PORT: 8080
       ASPNETCORE_URLS: "http://+:8080"
       ASPNETCORE_ENVIRONMENT: ${ENVIRONMENT}
-
-      #  Key matches Program.cs expectations
-      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=300;"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=512;"
       Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},ssl=false,abortConnect=false"
-
-      #  Object nesting hierarchy notation
       Jwt_Issuer: ${JWT_ISSUER}
       Jwt_Audience: ${JWT_AUDIENCE}
       Jwt_Secret: ${JWT_SECRET}
-
       Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
-      Kafka__GroupId: ${KAFKA__GROUP_ID}
-      Kafka__Topic: ${KAFKA__TOPIC}
-      Kafka__FailureTopic: ${KAFKA__FAILURE_TOPIC}
-
+      Kafka__GroupId: wallet-notification-group
+      Kafka__Topic: wallet.transaction.completed
+      Redis__BatchSize: 100
+      Redis__ThrottlingInterval: 00:00:02
+      Redis__LockTimeout: 00:00:30
+      OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
       NotificationApi__HubUrl: ${NOTIFICATION_URL}
-      LOG_LEVEL: ${LOG_LEVEL:-Error}
+      Logging__LogLevel__Default: ${LOG_LEVEL:-Error}
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
+      Logging__LogLevel__Microsoft.Hosting.Lifetime: Information
     expose:
       - "8080"
     depends_on:
@@ -174,10 +207,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - wallet-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -190,34 +225,32 @@ services:
       dockerfile: gateway/wallet.gateway/Dockerfile
     image: wallet-gateway:latest
     container_name: wallet-gateway
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     environment:
       ASPNETCORE_HTTP_PORT: 8080
       ASPNETCORE_URLS: "http://+:8080"
       ASPNETCORE_ENVIRONMENT: ${ENVIRONMENT}
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
-
-      # Key matches Program.cs expectations
-      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=300;"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=512;"
       Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},ssl=false,abortConnect=false"
-
-      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
-      # Precise YARP Environment overrides to map target destination routing properties
       ReverseProxy__Clusters__wallet-cluster__Destinations__wallet-api-default__Address: "http://wallet-api:8080/"
       ReverseProxy__Clusters__notification-cluster__Destinations__notification-api-default__Address: "http://wallet-notification:8080/"
-
-      # Object nesting hierarchy notation
       Jwt_Issuer: ${JWT_ISSUER}
       Jwt_Audience: ${JWT_AUDIENCE}
       Jwt_Secret: ${JWT_SECRET}
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
       Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET}
+      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
+      OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
       Frontend__BaseUrl: http://localhost:4200
-
       Logging__LogLevel__Default: ${LOG_LEVEL:-Error}
       Logging__LogLevel__Microsoft: Warning
       Logging__LogLevel__Microsoft.AspNetCore: Warning
+      Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
       Logging__LogLevel__Yarp: Information
-      Logging__LogLevel__System: Warning
     expose:
       - "8080"
     depends_on:
@@ -227,6 +260,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
       wallet-api:
         condition: service_healthy
       wallet-notification:
@@ -234,11 +269,55 @@ services:
     networks:
       - wallet-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
       interval: 20s
       timeout: 5s
       retries: 5
       start_period: 60s
+    restart: unless-stopped
+
+  wallet-fraud-worker:
+    build:
+      context: .
+      dockerfile: services/wallet/wallet.fraud-detection/Dockerfile
+    image: wallet-fraud-worker:latest
+    container_name: wallet-fraud-worker
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    environment:
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=512;"
+      Redis__ConnectionString: "redis:6379,password=${REDIS_PASSWORD},ssl=false,abortConnect=false"
+      Kafka__BootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
+      Kafka__GroupId: wallet-fraud-detect-group
+      Kafka__Topic: wallet.transaction.requested
+      Redis__BatchSize: 100
+      Redis__ThrottlingInterval: 00:00:02
+      Redis__LockTimeout: 00:00:30
+      OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
+      Logging__LogLevel__Default: ${LOG_LEVEL:-Error}
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
+      Logging__LogLevel__Microsoft.EntityFrameworkCore: Warning
+      Logging__LogLevel__Microsoft.Hosting.Lifetime: Information
+      MLModelPath: /models/FraudDetection.zip
+    volumes:
+      - ./services/wallet/wallet.fraud-detection/models:/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - wallet-network
     restart: unless-stopped
 
   # ====== Load Balancer (Nginx) ======
@@ -259,8 +338,7 @@ services:
     networks:
       - wallet-network
     healthcheck:
-      # **CRITICAL: Health check using /health endpoint (no redirects)**
-      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -290,6 +368,8 @@ volumes:
   redis_data:
     driver: local
   kafka_data:
+    driver: local
+  tempo_data:
     driver: local
 
 networks:

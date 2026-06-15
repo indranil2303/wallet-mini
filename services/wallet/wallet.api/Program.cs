@@ -1,12 +1,10 @@
-using MediatR;
 using StackExchange.Redis;
 using System.Text;
-using System.Text.Json;
 using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
+using wallet.api;
 using wallet.api.extensions;
 using wallet.application.query;
-using wallet.application.command;
 using wallet.application.interfaces;
 using wallet.infrastructure.messaging;
 using wallet.infrastructure.persistence;
@@ -17,12 +15,22 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using wallet.application.behaviour;
-using wallet.domain.entities;
-using wallet.domain.contracts;
+using Serilog;
+using wallet.telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.With<ActivityTraceEnricher>()
+        .WriteTo.Console();
+});
+
+builder.Services.AddWalletTelemetry(builder.Configuration, "wallet-api");
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -39,7 +47,8 @@ if (builder.Environment.IsDevelopment())
 
 builder.Services.AddMediatR(cfg =>
 {
-    cfg.RegisterServicesFromAssembly(typeof(SendMoneyCommand).Assembly);
+    cfg.RegisterServicesFromAssemblyContaining<GetWalletSummaryQuery>();
+    cfg.AddOpenBehavior(typeof(CachingBehavior<,>));
 });
 
 builder.Services.AddRateLimiter(options =>
@@ -161,19 +170,18 @@ builder.Services.AddHealthChecks()
         setup =>
         {
             setup.BootstrapServers = builder.Configuration["Kafka:BootstrapServers"];
-            setup.MessageTimeoutMs = 5000;
+            setup.MessageTimeoutMs = 3000;
+            setup.SocketTimeoutMs = 3000;
         },
         name: "Kafka",
-        tags: new[] { "messaging", "kafka" });
+        tags: new[] { "messaging", "kafka" })
+    .AddUrlGroup(
+        new Uri("http://otel-collector:13133/"),
+        name: "otel-collector",
+        tags: new[] { "telemetry", "non-critical" });
 
 builder.Services
     .AddScoped(typeof(ICacheService<>), typeof(RedisCacheService<>));
-
-builder.Services.AddMediatR(cfg =>
-{
-    cfg.RegisterServicesFromAssemblyContaining<GetTransactionsQuery>();
-    cfg.AddOpenBehavior(typeof(CachingBehavior<,>));
-});
 
 builder.Services.AddHttpClient<IFxRateProvider,
     FrankfurterFxProvider>(client =>
@@ -190,12 +198,15 @@ builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
+builder.Services.AddSingleton<IOutboxTrigger, OutboxTrigger>();
 builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
 builder.Services.AddHostedService<OutboxProcessorService>();
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
+// 1. Register the standard Problem Details service
+builder.Services.AddProblemDetails();
+
+// 2. Register your custom exception handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddOpenApi();
 
@@ -221,6 +232,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAppSessionContext();
+app.UseExceptionHandler();
 
 using (var scope = app.Services.CreateScope())
 {
@@ -241,154 +253,25 @@ app.MapHealthChecks("/health", new HealthCheckOptions
             report.Entries.Select(e => new HealthCheckDetail(e.Key, e.Value.Status.ToString(), e.Value.Description))
         );
 
-        //  Zero reflection serialization
         await context.Response.WriteAsJsonAsync(payload, AppJsonContext.Default.HealthResponse);
     }
 });
 
-var api = app.MapGroup("/api");
+var api = app.MapGroup("/api").RequireAuthorization();
 
-api.MapGet("/wallet/summary",
-    async (HttpContext context,
-    IMediator mediator) =>
-{
-    var _session = context.GetSession();
-    var result = await mediator.Send(new GetWalletSummaryQuery(_session));
-    return Results.Ok(result);
-})
-.RequireAuthorization();
+api.MapGet("/wallet/summary", WalletApiHandlers.GetWalletSummary);
 
-api.MapGet("/wallet/lookup/{alias}", async (
-    string alias,
-    HttpContext context,
-    AppdbContext dbContext,
-    IConnectionMultiplexer redis,
-    CancellationToken cancellationToken) =>
-{
-    var _session = context.GetSession();
-    // 1. Sanitize the input to prevent cache duplication
-    var cleanAlias = alias.Trim().ToLowerInvariant();
-    var db = redis.GetDatabase();
-    var cacheKey = $"lookup:alias:{cleanAlias}";
+api.MapGet("/wallet/lookup/{alias}", WalletApiHandlers.LookupRecipient);
 
-    var cachedResult = await db.StringGetAsync(cacheKey);
-    if (cachedResult.HasValue)
-    {
-        var response = JsonSerializer.Deserialize<RecipientLookupRecord>(cachedResult.ToString());
-        return Results.Ok(response);
-    }
+api.MapGet("/wallet/supported-currencies", WalletApiHandlers.GetSupportedCurrencies);
 
-    // 3. Cache Miss: Query Postgres via highly optimized projection
-    var recipient = await dbContext.Users
-            .Include(x => x.WalletAccount)
-            .AsNoTracking()
-            .Where(w => w.Alias == cleanAlias && w.Id != _session.APP_USR_ID
-                && w.IsActive)
-                .Select(w => new { WalletId = w.WalletAccount.Id, FullName = w.FullName, Alias = w.Alias })
-                .FirstOrDefaultAsync(cancellationToken);
+api.MapPost("/wallet/fx/quote", WalletApiHandlers.GetFxQuote);
 
-    if (recipient is null)
-    {
-        return Results.NotFound(new { Message = $"Alias not found: {alias}" });
-    }
+api.MapPut("/wallet/update-status", WalletApiHandlers.UpdateWalletStatus);
 
-    // 4. Mask the name (e.g., "John Doe" becomes "John D.")
-    var nameParts = recipient.FullName.Split(' ');
-    var maskedName = nameParts.Length > 1
-        ? $"{nameParts[0]} {nameParts[1][0]}."
-        : recipient.FullName;
+api.MapPost("/wallet/send", WalletApiHandlers.SendMoney);
 
-    var lookupResponse = new RecipientLookupRecord(recipient.WalletId, maskedName, recipient.Alias);
-    await db.StringSetAsync(cacheKey, JsonSerializer.Serialize(lookupResponse),
-        TimeSpan.FromMinutes(15));
-
-    return Results.Ok(lookupResponse);
-})
-.RequireAuthorization();
-
-api.MapGet("/wallet/supported-currencies",
-async ([FromQuery] string? baseCurrency,
-ICurrencyRepository currencyRepository) =>
-{
-    if (!string.IsNullOrWhiteSpace(baseCurrency))
-    {
-        var currency =
-            await currencyRepository
-                .GetCurrencyAsync(baseCurrency);
-
-        return currency is null
-            ? Results.NotFound(new
-            {
-                Message = $"Currency '{baseCurrency}' not found."
-            })
-            : Results.Ok(currency);
-    }
-
-    var currencies =
-        await currencyRepository
-            .GetAllCurrenciesAsync();
-
-    return Results.Ok(currencies?
-            .OrderBy(x => x.Code)
-                .Select(x => new CurrencyRecord(x.Code, x.Name))
-    );
-})
-.RequireAuthorization();
-
-api.MapPost("/wallet/fx/quote",
-    async ([FromBody] FxQuoteRequest request,
-    IFxRateProvider fxProvider,
-    ILogger<Program> logger) =>
-    {
-        var fx = await fxProvider.GetRateAsync(request.SourceCurrency, request.DestinationCurrency);
-        if(fx is null)
-        {
-            return Results.BadRequest(new { Message = $"FX rate not available for {request.SourceCurrency} to {request.DestinationCurrency}" });
-        }
-        
-        var convertedAmount = Math.Round(request.ReceivingAmount / fx!.Rate, 2);
-        var transactionFee = Math.Round(convertedAmount * 0.01m, 2); // 1% fee for simplicity, will be configured later
-        logger.LogInformation("FX Quote: {SourceCurrency} to {DestinationCurrency} - Rate: {Rate}, Converted Amount: {ConvertedAmount}, Transaction Fee: {TransactionFee}",
-            request.SourceCurrency, request.DestinationCurrency, fx.Rate, convertedAmount, transactionFee);
-        return Results.Ok(new FxQuoteRecord(convertedAmount, fx!.Rate, transactionFee));
-    })
-.RequireAuthorization();
-
-api.MapPut("/wallet/update-status",
-    async ([FromBody] WalletStatusRequest request,
-    HttpContext context,
-    IMediator mediator) =>
-    {
-        var _session = context.GetSession();
-        await mediator.Send(new SaveWalletStatusCommand(_session.APP_USR_ID, request.CurrencyCode));
-        return Results.NoContent();
-    })
-.RequireAuthorization();
-
-api.MapPost("/wallet/send",
-    async ([FromBody] SendMoneyRequest sendMoneyRequest,
-    HttpContext context,
-    IMediator mediator) =>
-    {
-        var _session = context.GetSession();
-        var transactionId = await mediator.Send(new SendMoneyCommand(_session.APP_USR_ID, sendMoneyRequest.ReceiverWalletId, sendMoneyRequest.SourceAmount, sendMoneyRequest.DestinationCurrency, sendMoneyRequest.DestinationAmount, sendMoneyRequest.FxRate, sendMoneyRequest.FeeCurrency, sendMoneyRequest.TransactionFee));
-        return Results.Ok(new { id = transactionId });
-    })
-.RequireAuthorization();
-
-api.MapGet("/wallet/transactions", async (
-    HttpContext context,
-    IMediator mediator,
-    [FromQuery] DateTime? startDate,
-    [FromQuery] DateTime? endDate,
-    [FromQuery] int pageIndex,
-    [FromQuery] int pageSize) =>
-    {
-        var _session = context.GetSession();
-        var result = await mediator.Send(new GetTransactionsQuery(_session.APP_USR_ID, startDate, endDate, pageIndex, pageSize));
-        return Results.Ok(result);
-    })
-.RequireAuthorization();
+api.MapGet("/wallet/transactions", WalletApiHandlers.GetTransactions);
 
 app.Run();
 
@@ -398,5 +281,5 @@ public record HealthCheckDetail(string Name, string Status, string? Description)
 internal partial class AppJsonContext : JsonSerializerContext { }
 public sealed record WalletStatusRequest(string CurrencyCode);
 public sealed record FxQuoteRequest(string SourceCurrency, decimal ReceivingAmount, string DestinationCurrency);
-public sealed record FxQuoteRecord(decimal FinalAmount, decimal ExchangeRate, decimal TransactionFee);
+public sealed record FxQuoteResponse(decimal FinalAmount, decimal ExchangeRate, decimal TransactionFee);
 public sealed record SendMoneyRequest(string ReceiverWalletId, decimal SourceAmount, string DestinationCurrency, decimal DestinationAmount, decimal FxRate, string FeeCurrency, decimal TransactionFee);

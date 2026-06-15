@@ -5,6 +5,7 @@ namespace wallet.application.interfaces;
 public interface IWalletRepository
 {
     Task<WalletAccount?> GetWalletAsync(string identifier, CancellationToken cancellationToken = default);
+    Task<(string currenyCode, decimal balance, WalletAccountStatus status, bool isDefaultCurrencySet)?> GetWalletSummaryAsync(string identifier, CancellationToken cancellationToken = default);
     Task CreateAsync(WalletAccount wallet, CancellationToken cancellationToken);
     Task UpdateAsync(WalletAccount wallet);
     Task<bool> CheckifWalletFrozenAsync(string identifier, CancellationToken cancellationToken);

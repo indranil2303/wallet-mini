@@ -11,6 +11,7 @@ public class OutboxMessage
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     public string EventKey { get; set; } = default!;
+    public Guid RequestId { get; set; }
     public string Payload { get; set; } = default!;
     public DateTime OccurredOnUtc { get; set; }
     public bool Processed { get; set; }
@@ -33,6 +34,10 @@ public sealed class OutboxMessageConfiguration
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(x => x.RequestId)
+            .HasMaxLength(200)
+            .HasDefaultValue(Guid.Empty);
+
         builder.Property(x => x.OccurredOnUtc)
             .IsRequired();
 
@@ -41,5 +46,11 @@ public sealed class OutboxMessageConfiguration
 
         builder.Property(x => x.ProcessingAttempts)
             .HasDefaultValue(0);
+
+        builder.HasIndex(x => new
+        {
+            x.RequestId,
+            x.EventKey
+        });
     }
 }

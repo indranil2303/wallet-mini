@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\wallet.domain\wallet.domain.csproj" />
+    <ProjectReference Include="..\..\..\shared\wallet.telemetry\wallet.telemetry.csproj" />
   </ItemGroup>
 
 </Project>

@@ -14,4 +14,8 @@ public interface ITransactionRepository
     int page,
     int pageSize,
     CancellationToken cancellationToken = default!);
+
+    Task<Transaction?> GetByIdAsync(string identifier, CancellationToken cancellationToken = default);
+
+    Task UpdateStatusAsync(string identifier, TransactionStatus status, CancellationToken cancellationToken = default);
 }

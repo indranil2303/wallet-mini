@@ -1,17 +1,56 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
+using notification.api.dispatcher;
 using notification.api.hubs;
 using notification.api.security;
 using notification.api.services;
-using notification.consumer.consumers;
+using Serilog;
+using StackExchange.Redis;
+using wallet.domain.contracts;
+using wallet.messaging.contracts;
+using wallet.messaging.interfaces;
+using wallet.telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.With<ActivityTraceEnricher>()
+        .WriteTo.Console();
+});
+
+builder.Services.AddWalletTelemetry(builder.Configuration, "wallet-notification-api");
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]
+        ?? throw new InvalidOperationException("Redis:ConnectionString must be configured")));
+
+builder.Services.Configure<RedisBatchOptions>(options =>
+{
+    options.BatchSize = builder.Configuration.GetValue<int?>("Redis:BatchSize") ?? 100;
+    options.ThrottlingInterval = builder.Configuration.GetValue<TimeSpan?>("Redis:ThrottlingInterval") ?? TimeSpan.FromSeconds(2);
+    options.LockTimeout = builder.Configuration.GetValue<TimeSpan?>("Redis:LockTimeout") ?? TimeSpan.FromSeconds(30);
+});
+
+builder.Services.Configure<KafkaConsumerOptions>(options =>
+{
+    options.BootstrapServers = builder.Configuration["Kafka:BootstrapServers"] ?? "kafka:9092";
+    options.GroupId = builder.Configuration["Kafka:GroupId"] ?? "wallet-notification-group";
+    options.Topic = builder.Configuration["Kafka:Topic"] ?? "wallet.transaction.completed";
+});
+builder.Services.AddSingleton<IRedisBatchHandler<WalletSentEvent>, NotificationBatchHandler>();
+builder.Services.AddHostedService<RedisBatchAggregatorService<WalletSentEvent>>();
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -125,11 +164,8 @@ builder.Services
     .AddSingleton<IUserIdProvider, SignalRUserIdProvider>();
 builder.Services
     .AddSingleton<NotificationDispatcher>();
-builder.Services
-    .AddHostedService<TransactionCompletedConsumer>();
 
-builder.Services.Configure<ForwardedHeadersOptions>(
-    options =>
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders =
             ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -151,10 +187,16 @@ builder.Services
         {
             setup.BootstrapServers =
                 builder.Configuration["Kafka:BootstrapServers"];
-
             setup.SocketTimeoutMs = 3000;
+            setup.MessageTimeoutMs = 3000;
         },
-        name: "kafka");
+        name: "kafka",
+        tags: new[] { "messaging", "kafka" })
+
+    .AddUrlGroup(
+        new Uri("http://otel-collector:13133/"),
+        name: "otel-collector",
+        tags: new[] { "telemetry", "non-critical" });
 
 var app = builder.Build();
 
@@ -174,7 +216,19 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = healthCheck => !healthCheck.Tags.Contains("non-critical"),
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var payload = new HealthResponse(report.Status.ToString(),
+            report.Entries.Select(e => new HealthCheckDetail(e.Key, e.Value.Status.ToString(), e.Value.Description))
+        );
+
+        await context.Response.WriteAsJsonAsync(payload, AppJsonContext.Default.HealthResponse);
+    }
+});
 
 app.MapHub<NotificationHub>("/api/hubs/notifications");
 

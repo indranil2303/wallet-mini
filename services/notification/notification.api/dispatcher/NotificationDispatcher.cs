@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using notification.api.hubs;
 
-namespace notification.api.services;
+namespace notification.api.dispatcher;
 
 public sealed class NotificationDispatcher
 {

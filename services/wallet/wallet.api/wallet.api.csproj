@@ -18,18 +18,18 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+    <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.Kafka" Version="9.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\wallet.application\wallet.application.csproj" />
     <ProjectReference Include="..\wallet.infrastructure\wallet.infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\shared\wallet.telemetry\wallet.telemetry.csproj" />
   </ItemGroup>
 </Project>

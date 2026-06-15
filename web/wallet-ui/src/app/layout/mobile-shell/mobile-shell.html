@@ -1,36 +1,46 @@
 <div class="shell">
-  <div class="global-toast-container">
+  <div class="global-toast-container" aria-live="polite" aria-atomic="true">
     @for (note of recentToasts(); track note.requestId) {
-      <div class="toast-card drop-in" [ngClass]="note.type">
+      <div class="toast-card drop-in" [ngClass]="note.type" role="alert">
         <div class="toast-content">
-          <strong>{{ note.type === 'money_received' ? 'Money Received' : 'Money Sent' }}</strong>
-          <span class="amount-glow">
-            {{ note.type === 'money_received' ? '+' : '-' }}
-            {{ note.receiverCurrency | currencySymbol }} {{ note.amount | number: '1.2-2' }}
-          </span>
+          @if (note.type == 'failed_event') {
+            <strong>Transaction failed</strong>
+            <span class="amount-glow">
+              {{ note.currency | currencySymbol }} {{ note.amount | number: '1.2-2' }}
+            </span>
+          } @else {
+            <strong>{{ note.type === 'money_received' ? 'Money Received' : 'Money Sent' }}</strong>
+            <span class="amount-glow">
+              {{ note.type === 'money_received' ? '+' : '-' }}
+              {{ note.currency | currencySymbol }} {{ note.amount | number: '1.2-2' }}
+            </span>
+          }
         </div>
         <div class="toast-footer">{{ note.message }}</div>
       </div>
     }
   </div>
+
   <header class="topbar">
     <div class="brand">
-      <div class="logo">W</div>
+      <div class="logo" aria-hidden="true">W</div>
       <div class="brand-text">
         <span>Wallet</span>
         <div
           class="connection-dot"
           [class.connected]="isConnected()"
+          [attr.aria-label]="isConnected() ? 'Connected to server' : 'Disconnected from server'"
           title="Connection Status"
         ></div>
       </div>
     </div>
 
     <div class="tagline">Secure. Fast. Reliable.</div>
+
     <div class="actions">
       @if (isAuthenticated()) {
-        <button class="reward-btn">
-          <span class="sparkle">✨</span>
+        <button class="reward-btn" aria-label="View Rewards">
+          <span class="sparkle" aria-hidden="true">✨</span>
           <span class="reward-text">Rewards</span>
         </button>
         <button
@@ -46,15 +56,33 @@
     </div>
   </header>
 
+  @if (isDegraded()) {
+    <button
+      class="offline-banner"
+      (click)="manualSync()"
+      aria-label="Real-time updates paused. Tap to refresh."
+    >
+      <mat-icon>cloud_off</mat-icon>
+      <span>Real-time updates paused. Tap to refresh.</span>
+    </button>
+  }
+
   <main class="content">
     <router-outlet></router-outlet>
   </main>
 
-  <nav class="bottom-nav">
+  <nav class="main-nav" aria-label="Primary Navigation">
     <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-      Home
+      <mat-icon>home</mat-icon>
+      <span>Home</span>
     </a>
-    <a routerLink="/send" routerLinkActive="active"> Send </a>
-    <a routerLink="/transactions" routerLinkActive="active"> Activity </a>
+    <a routerLink="/send" routerLinkActive="active">
+      <mat-icon>send</mat-icon>
+      <span>Send</span>
+    </a>
+    <a routerLink="/transactions" routerLinkActive="active">
+      <mat-icon>receipt_long</mat-icon>
+      <span>Activity</span>
+    </a>
   </nav>
 </div>

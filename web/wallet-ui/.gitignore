@@ -1,44 +1,53 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# ==================================
+# Visual Studio & .NET Backend
+# ==================================
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.dbmdl
+*.jfm
+*.pfx
+appsettings.Development.json
+app.settings.json
 
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+# ==================================
+# Angular & Node.js Frontend
+# ==================================
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
-
-# IDEs and editors
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/mcp.json
-.history/*
-
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-__screenshots__/
-
-# System files
+# ==================================
+# OS Generated Files
+# ==================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+
+# ==================================
+# Environments & Secrets
+# ==================================
+.env
+.env.local
+appsettings.json
+appsettings.*.json
+secrets.json
+*.secret.json
+
+# ==================================
+# Explicit ALLOW Rules
+# ==================================
+# Ensure the assets directory for your README is always tracked
+!assets/
+!docs/assets/

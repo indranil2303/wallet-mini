@@ -18,7 +18,7 @@ public sealed class GetTransactionsQueryHandler(ITransactionRepository repositor
         var pageSize = Math.Clamp(request.pageSize, 1, 100);
         var (query, totalRecords) = await _repository.GetByDateAsync(request.userId, request.startDate, request.endDate, page, pageSize);
         var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
-        var items = await query!.Select(x => new TransactionRecord(x.Id, x.ReceiverWallet.UserId == request.userId ? "CR" : "DR", x.DestinationCurrency, x.DestinationAmount, x.FxRate, x.SenderWallet.User.Alias, x.SenderWallet.Id, x.ReceiverWallet.User.Alias, x.ReceiverWallet.Id, x.Status.ToString(), x.CreatedAtUtc)).ToListAsync() ?? [];
+        var items = await query!.Select(x => new TransactionRecord(x.Id, x.ReceiverWallet.UserId == request.userId ? "CR" : "DR", x.SenderWallet.User.Alias, x.SenderWallet.Id, x.ReceiverWallet.User.Alias, x.ReceiverWallet.Id, x.SourceCurrency, x.SourceAmount, x.FxRate, x.ModifiedFxRate.GetValueOrDefault(), x.Status.ToString(), x.CreatedAtUtc)).ToListAsync() ?? [];
 
         return new PagedRecord<TransactionRecord>(items.ToList(), page, pageSize, totalRecords, totalPages, page > 1, page < totalPages);
     }

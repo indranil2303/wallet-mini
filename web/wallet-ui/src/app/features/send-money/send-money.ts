@@ -27,6 +27,7 @@ import {
   WalletService,
   RecipientLookupResponse,
   CurrencyRecord,
+  SendMoneyRequest,
 } from '../../core/services/wallet.service';
 import { CurrencySymbolPipe } from '../../core/pipes/currency-symbol-pipe';
 import { ShortenWalletIdPipe } from '../../core/pipes/shorten-wallet-id-pipe';
@@ -84,6 +85,8 @@ export class SendMoneyComponent implements OnInit {
     destinationCurrency: string;
   } | null>();
 
+  private currentTransactionIdempotencyKey: string | null = null;
+
   ngOnInit() {
     this.fetchSupportedCurrencies();
 
@@ -133,7 +136,6 @@ export class SendMoneyComponent implements OnInit {
           }
 
           if (request.sourceCurrency === request.destinationCurrency) {
-            // Match C# endpoint math: fee + source
             const fee = request.receivingAmount * 0.01;
             return of({
               exchangeRate: 1,
@@ -194,7 +196,7 @@ export class SendMoneyComponent implements OnInit {
       return;
     }
 
-    // FIX: Correctly mapped source and destination
+    // Correctly mapped source and destination
     this.quoteSubject.next({
       sourceCurrency: this.senderCurrency(),
       receivingAmount: amount,
@@ -215,7 +217,11 @@ export class SendMoneyComponent implements OnInit {
     this.errorMessage.set('');
     this.successMessage.set('');
 
-    const request = {
+    if (!this.currentTransactionIdempotencyKey) {
+      this.currentTransactionIdempotencyKey = crypto.randomUUID();
+    }
+
+    const request: SendMoneyRequest = {
       receiverWalletId: targetWalletId,
       sourceAmount: this.senderAmount()!,
       destinationCurrency: this.receiverCurrency(),
@@ -225,16 +231,18 @@ export class SendMoneyComponent implements OnInit {
       transactionFee: this.transactionFee()!,
     };
 
-    this.walletService.sendMoney(request as any).subscribe({
-      next: (response) => {
-        this.successMessage.set(`Transfer initiated..`);
-        this.cleanup();
-      },
-      error: (error) => {
-        this.errorMessage.set(error.error?.message || `Temporary system issue. Try again later.`);
-        this.cleanup();
-      },
-    });
+    this.walletService
+      .sendMoney(request as SendMoneyRequest, this.currentTransactionIdempotencyKey)
+      .subscribe({
+        next: (response) => {
+          this.successMessage.set(`Transfer initiated..`);
+          this.cleanup();
+        },
+        error: (error) => {
+          this.errorMessage.set(error.error?.message || `Temporary system issue. Try again later.`);
+          this.cleanup();
+        },
+      });
   }
 
   resetForm() {
@@ -247,6 +255,7 @@ export class SendMoneyComponent implements OnInit {
     this.recipient.set(null);
     this.successMessage.set('');
     this.errorMessage.set('');
+    this.currentTransactionIdempotencyKey = null;
   }
 
   getSelectedCurrencyName(): string {

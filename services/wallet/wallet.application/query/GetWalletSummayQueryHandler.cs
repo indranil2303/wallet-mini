@@ -1,16 +1,23 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using wallet.application.interfaces;
 using wallet.domain.contracts;
 
 namespace wallet.application.query;
-public sealed class GetWalletSummaryQueryHandler(IWalletRepository repository)
+
+public sealed class GetWalletSummaryQueryHandler(IWalletRepository repository,
+ILogger<GetWalletSummaryQueryHandler> logger)
     : IRequestHandler<GetWalletSummaryQuery, WalletRecord?>
 {
     public async Task<WalletRecord?> Handle(GetWalletSummaryQuery request, CancellationToken cancellationToken)
     {
-        var walletobj = await repository.GetWalletAsync(request.Session.APP_USR_ID.ToString());
-        return walletobj is null ? null : new WalletRecord(walletobj.CurrencyCode, walletobj.Balance, walletobj.Status, walletobj.IsDefaultCurrencySet);
+        var walletState = await repository.GetWalletSummaryAsync(request.Session.APP_USR_ID.ToString(), cancellationToken);
+        logger.LogInformation("walletState -> {walletState}", walletState);
+
+        return walletState is { } state
+            ? new WalletRecord(state.currenyCode, state.balance, state.status.ToString(), state.isDefaultCurrencySet)
+            : null;
     }
 }
-public sealed record GetWalletSummaryQuery(AppSession Session) 
+public sealed record GetWalletSummaryQuery(AppSession Session)
     : IRequest<WalletRecord?>;

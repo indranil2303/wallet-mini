@@ -8,10 +8,12 @@
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.9" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.12.14" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
@@ -19,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\notification.consumer\notification.consumer.csproj" />
+    <ProjectReference Include="..\..\..\services\wallet\wallet.domain\wallet.domain.csproj" />
+    <ProjectReference Include="..\..\..\shared\wallet.telemetry\wallet.telemetry.csproj" />
+    <ProjectReference Include="..\..\..\shared\wallet.messaging\wallet.messaging.csproj" />
   </ItemGroup>
 </Project>

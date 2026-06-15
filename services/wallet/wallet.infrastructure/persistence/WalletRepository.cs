@@ -3,6 +3,7 @@ using wallet.application.interfaces;
 using wallet.domain.entities;
 
 namespace wallet.infrastructure.persistence;
+
 public sealed class WalletRepository(AppdbContext dbContext) : IWalletRepository, IDisposable
 {
     private readonly AppdbContext _dbContext = dbContext;
@@ -32,11 +33,59 @@ public sealed class WalletRepository(AppdbContext dbContext) : IWalletRepository
         return null;
     }
 
+    public async Task<(string currenyCode,
+    decimal balance,
+    WalletAccountStatus status,
+    bool isDefaultCurrencySet)?>
+    GetWalletSummaryAsync(string identifier, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return null;
+        }
+
+        var query = _dbContext.Wallet.AsNoTracking();
+
+        if (Guid.TryParse(identifier, out Guid walletId))
+        {
+            query = query.Where(w => w.Id == walletId);
+        }
+        else if (int.TryParse(identifier, out int userId))
+        {
+            query = query.Where(w => w.UserId == userId);
+        }
+        else
+        {
+            return null;
+        }
+
+        var result = await query
+            .Select(w => new
+            {
+                w.CurrencyCode,
+                w.Balance,
+                w.Status,
+                w.IsDefaultCurrencySet
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (result is null)
+        {
+            return null;
+        }
+
+        var parsedStatus = Enum.TryParse<WalletAccountStatus>(result.Status, true, out var statusEnum)
+            ? statusEnum
+            : default;
+
+        return (result.CurrencyCode, result.Balance, parsedStatus, result.IsDefaultCurrencySet);
+    }
+
     public async Task CreateAsync(WalletAccount wallet, CancellationToken cancellationToken = default)
     {
         var strategy =
             _dbContext.Database.CreateExecutionStrategy();
-        
+
         await strategy.ExecuteAsync(async () =>
         {
             await using var transaction =
@@ -60,7 +109,12 @@ public sealed class WalletRepository(AppdbContext dbContext) : IWalletRepository
 
     public Task UpdateAsync(WalletAccount wallet)
     {
-        _dbContext.Wallet.Update(wallet);
+        var entry = _dbContext.Entry(wallet);
+        if (entry.State is EntityState.Detached)
+        {
+            _dbContext.Wallet.Attach(wallet);
+            entry.State = EntityState.Modified;
+        }
         return Task.CompletedTask;
     }
 

@@ -19,8 +19,20 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using wallet.domain.contracts;
 using System.Security.Claims;
 using wallet.domain.entities;
+using wallet.telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.With<ActivityTraceEnricher>()
+        .WriteTo.Console();
+});
+
+builder.Services.AddWalletTelemetry(builder.Configuration, "wallet-gateway");
 
 builder.WebHost.ConfigureKestrel(options =>
 {

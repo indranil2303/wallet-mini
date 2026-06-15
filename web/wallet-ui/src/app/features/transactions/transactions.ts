@@ -38,6 +38,7 @@ export class TransactionsComponent {
   private destroyRef = inject(DestroyRef); // Inject for automatic memory cleanup
 
   readonly dataSource = new MatTableDataSource<Transaction>([]);
+  readonly defaultCurrency = signal<string>(sessionStorage.getItem('defaultCurrency') || '');
   readonly startDate = signal<Date | null>(null);
   readonly endDate = signal<Date | null>(null);
   readonly loading = signal(false);

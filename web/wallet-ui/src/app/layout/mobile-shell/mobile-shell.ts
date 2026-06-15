@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   OnDestroy,
@@ -14,7 +15,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { NotificationService, WalletNotification } from '../../core/services/notification.service';
-import { CurrencySymbolPipe } from "../../core/pipes/currency-symbol-pipe";
+import { CurrencySymbolPipe } from '../../core/pipes/currency-symbol-pipe';
 
 @Component({
   selector: 'app-shell',
@@ -26,8 +27,8 @@ import { CurrencySymbolPipe } from "../../core/pipes/currency-symbol-pipe";
     RouterLinkActive,
     MatIconModule,
     MatButtonModule,
-    CurrencySymbolPipe
-],
+    CurrencySymbolPipe,
+  ],
   templateUrl: './mobile-shell.html',
   styleUrls: ['./mobile-shell.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +38,9 @@ export class MobileShellComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   readonly recentToasts = signal<WalletNotification[]>([]);
+  readonly isDegraded = computed(
+    () => this.notificationService.connectionState() === 'disconnected',
+  );
 
   constructor() {
     // Listen for new notifications and add them to our transient toast list
@@ -84,6 +88,15 @@ export class MobileShellComponent implements OnInit, OnDestroy {
 
   isAuthenticated(): boolean {
     return this.authService.isAuthenticated();
+  }
+
+  manualSync(): void {
+    if (this.isDegraded()) {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        this.notificationService.connect(token);
+      }
+    }
   }
 
   logout(): void {

@@ -6,9 +6,9 @@ const MAX_NOTIFICATIONS = 50;
 const FLUSH_INTERVAL_MS = 120;
 
 export interface WalletNotification {
-  type: 'money_sent' | 'money_received';
+  type: 'money_sent' | 'money_received' | 'failed_event';
   requestId: string;
-  receiverCurrency: string;
+  currency: string;
   amount: number;
   message: string;
   createdAtUtc: string;
@@ -100,7 +100,7 @@ export class NotificationService {
       return;
     }
 
-    // PERFORMANCE FIX: Run the timer entirely outside of Angular so it doesn't trigger
+    // Run the timer entirely outside of Angular so it doesn't trigger
     // a global Change Detection cycle every 120ms.
     this.ngZone.runOutsideAngular(() => {
       this.flushTimer = setInterval(() => {

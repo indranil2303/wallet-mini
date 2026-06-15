@@ -11,8 +11,7 @@ COPY ["services/wallet/wallet.application/wallet.application.csproj", "services/
 RUN dotnet restore "gateway/wallet.gateway/wallet.gateway.csproj"
 
 # Copy remaining source and publish
-COPY ["gateway/wallet.gateway/", "gateway/wallet.gateway/"]
-COPY ["services/wallet/", "services/wallet/"]
+COPY . .
 
 WORKDIR /src/gateway/wallet.gateway
 RUN dotnet publish "wallet.gateway.csproj" -c Release -o /app/publish /p:UseAppHost=false

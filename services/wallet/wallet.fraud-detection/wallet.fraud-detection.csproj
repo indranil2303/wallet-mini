@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-wallet.fraud_detection-24e5aa5a-cdfc-4a69-8865-6646fce0f53a</UserSecretsId>
+    <RootNamespace>wallet.fraud_detection</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.14.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.ML" Version="5.0.0" />
+    <PackageReference Include="Microsoft.ML" Version="5.0.0" />
+    <PackageReference Include="Microsoft.ML.LightGbm" Version="5.0.0" />
+    <PackageReference Include="Microsoft.ML.FastTree" Version="5.0.0" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.12.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\wallet.domain\wallet.domain.csproj" />
+    <ProjectReference Include="..\wallet.application\wallet.application.csproj" />
+    <ProjectReference Include="..\wallet.infrastructure\wallet.infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\shared\wallet.telemetry\wallet.telemetry.csproj" />
+    <ProjectReference Include="..\..\..\shared\wallet.messaging\wallet.messaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="models\FraudDetection.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

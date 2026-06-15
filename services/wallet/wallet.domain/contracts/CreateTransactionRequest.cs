@@ -1,3 +1,5 @@
+using wallet.domain.entities;
+
 namespace wallet.domain.contracts;
 public sealed record CreateTransactionRequest(Guid SenderWalletId,
     Guid ReceiverWalletId,
@@ -6,5 +8,7 @@ public sealed record CreateTransactionRequest(Guid SenderWalletId,
     string DestinationCurrency,
     decimal DestinationAmount,
     decimal FxRate,
+    decimal? ModifiedFxRate,
     string FeeCurrency,
-    decimal TransactionFee);
+    decimal TransactionFee,
+    TransactionStatus Status);

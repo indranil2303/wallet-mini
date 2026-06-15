@@ -4,13 +4,14 @@ namespace wallet.domain.contracts;
 
 [JsonSerializable(typeof(TransactionRecord))]
 public record TransactionRecord(Guid id,
-string type, 
-string destinationCurrency,
-decimal destinationAmount,
-decimal exchangeRate,
+string type,
 string senderAliasName, 
 Guid senderWalletId,
 string receiverAliasName, 
-Guid ReceiverWalletId, 
+Guid ReceiverWalletId,
+string sourceCurrency,
+decimal sourceAmount,
+decimal exchangeRate,
+decimal modifiedExchangeRate, 
 string status,
 DateTime createdAtUtc);

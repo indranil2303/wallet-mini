@@ -1,12 +1,14 @@
+using System.Diagnostics;
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
+using wallet.telemetry;
 
 namespace wallet.infrastructure.messaging;
 
 public sealed class KafkaProducer(IOptions<KafkaSettings> options) : IKafkaProducer, IDisposable
 {
-    private readonly IProducer<string, string> _producer = CreateProducer(options.Value.BootstrapServers);
     private bool _disposed;
+    private readonly IProducer<string, string> _producer = CreateProducer(options.Value.BootstrapServers);
     private static IProducer<string, string> CreateProducer(string bootstrapServers)
     {
         var config = new ProducerConfig
@@ -21,12 +23,17 @@ public sealed class KafkaProducer(IOptions<KafkaSettings> options) : IKafkaProdu
         return new ProducerBuilder<string, string>(config).Build();
     }
 
-    public async Task PublishAsync(string key, string message, CancellationToken cancellationToken = default)
+    public async Task PublishAsync(string topic, string key, string message, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentException.ThrowIfNullOrWhiteSpace(options.Value.Topic);
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentException.ThrowIfNullOrWhiteSpace(topic);
         ArgumentNullException.ThrowIfNull(message);
+
+        using var activity = WalletTelemetry.ActivitySource.StartActivity("Kafka.Publish", ActivityKind.Producer);
+        activity?.SetTag("messaging.system", "kafka");
+        activity?.SetTag("messaging.topic", topic);
+        activity?.SetTag("messaging.kafka.message_key", key);
+        activity?.SetTag("messaging.kafka.message", message);
 
         var kafkaMessage = new Message<string, string>
         {
@@ -34,9 +41,12 @@ public sealed class KafkaProducer(IOptions<KafkaSettings> options) : IKafkaProdu
             Value = message
         };
 
-        var result = await _producer.ProduceAsync(options.Value.Topic, kafkaMessage, cancellationToken);
-        if (result.Status != PersistenceStatus.Persisted)
+        TelemetryExtensions.InjectKafkaTraceContext(kafkaMessage);
+
+        var result = await _producer.ProduceAsync(topic, kafkaMessage, cancellationToken);
+        if (result.Status is not PersistenceStatus.Persisted)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, result.Status.ToString());
             throw new InvalidOperationException($"Failed to produce message to Kafka. Status: {result.Status}");
         }
     }
@@ -66,5 +76,5 @@ public sealed class KafkaProducer(IOptions<KafkaSettings> options) : IKafkaProdu
 public interface IKafkaProducer
 {
     // Added 'key' to guarantee ordering, and a CancellationToken
-    Task PublishAsync(string key, string message, CancellationToken cancellationToken = default);
+    Task PublishAsync(string topic, string key, string message, CancellationToken cancellationToken = default);
 }
